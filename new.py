@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 
 def get_bbc_news_articles():
-    url = 'https://www.bbc.com/news/world'
+    url = 'https://www.bbc.com/news'
     response = requests.get(url)
 
     if response.status_code != 200:
