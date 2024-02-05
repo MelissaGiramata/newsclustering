@@ -12,7 +12,7 @@ def get_bbc_news_articles():
         st.error(f"Failed to fetch news articles from BBC News. Status code: {response.status_code}")
         return []
 
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup( response.text, 'html.parser')
 
     # Extract news articles
     articles = []
