@@ -1,5 +1,5 @@
 streamlit 
 requests
 BeautifulSoup4
-bs4
+nltk
 scikit-learn

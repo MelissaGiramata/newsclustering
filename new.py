@@ -1,50 +1,43 @@
+import json
 import streamlit as st
-import requests
-from bs4 import BeautifulSoup
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import string
 
-def get_bbc_news_articles():
-    url = 'https://www.bbc.com/news/world'
-    response = requests.get(url)
+# Download NLTK resources (stopwords and punkt tokenizer)
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
 
-    if response.status_code != 200:
-        st.error(f"Failed to fetch news articles from BBC News. Status code: {response.status_code}")
+def load_articles_from_json(file_path='bbc_articles.json'):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            articles = json.load(json_file)
+        return articles
+    except FileNotFoundError:
         return []
 
-    soup = BeautifulSoup( response.text, 'html.parser')
-
-    # Extract news articles
-    articles = []
-    for article in soup.find_all('div', class_='gs-c-promo'):
-        title = article.find('h3', class_='gs-c-promo-heading__title').text.strip()
-        
-        # Check if the 'a' tag is found before accessing its attributes
-        link_tag = article.find('a', class_='gs-c-promo-heading')
-        if link_tag:
-            link = url + link_tag.get('href', '').strip()
-        else:
-            link = ''
-        
-        # Check if the 'p' tag is found before accessing its text attribute
-        description_tag = article.find('p', class_='gs-c-promo-summary')
-        description = description_tag.text.strip() if description_tag else ''
-        
-        content = f"{title} {description}"  # Concatenate title and description for content
-        articles.append({'title': title, 'link': link, 'description': description, 'content': content})
-
-    return articles
+def preprocess_text(text):
+    stop_words = set(stopwords.words('english'))
+    # Remove punctuation and convert to lowercase
+    text = text.translate(str.maketrans('', '', string.punctuation)).lower()
+    # Tokenize the text and remove stopwords
+    tokens = word_tokenize(text)
+    filtered_tokens = [word for word in tokens if word.isalnum() and word not in stop_words]
+    return ' '.join(filtered_tokens)
 
 def cluster_articles(articles):
-    # Extract content for clustering
-    content = [article['content'] for article in articles]
+    # Extract title for clustering and preprocess
+    content = [preprocess_text(article['title']) for article in articles]
 
     # Vectorize the content using TF-IDF
-    vectorizer = TfidfVectorizer(stop_words='english')
+    vectorizer = TfidfVectorizer()
     X = vectorizer.fit_transform(content)
 
     # Cluster the articles using K-Means
-    num_clusters = 3  # You can adjust the number of clusters
+    num_clusters = 6
     kmeans = KMeans(n_clusters=num_clusters, random_state=42)
     clusters = kmeans.fit_predict(X)
 
@@ -57,11 +50,11 @@ def cluster_articles(articles):
 def main():
     st.title("News Clustering with Streamlit - BBC News")
 
-    # Fetch and display news articles
-    bbc_articles = get_bbc_news_articles()
+    # Load articles from the JSON file
+    bbc_articles = load_articles_from_json()
 
     if not bbc_articles:
-        st.warning("No news articles available.")
+        st.warning("No news articles available. Make sure to run the scraper to fetch and store articles.")
         return
 
     st.subheader("BBC News Articles:")
